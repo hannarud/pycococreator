@@ -10,8 +10,9 @@ import numpy as np
 from pycococreatortools import pycococreatortools
 
 ROOT_DIR = 'train'
-IMAGE_DIR = os.path.join(ROOT_DIR, "shapes_train2018")
-ANNOTATION_DIR = os.path.join(ROOT_DIR, "annotations")
+JSON_FILENAME = "shape_train.json"
+IMAGE_DIR = ROOT_DIR  # os.path.join(ROOT_DIR, "shapes_train2018")
+ANNOTATION_DIR = ROOT_DIR  # os.path.join(ROOT_DIR, "annotations")
 
 INFO = {
     "description": "Example Dataset",
@@ -45,8 +46,9 @@ CATEGORIES = [
         'id': 3,
         'name': 'triangle',
         'supercategory': 'shape',
-    },
+    }
 ]
+
 
 def filter_for_jpeg(root, files):
     file_types = ['*.jpeg', '*.jpg']
@@ -55,6 +57,7 @@ def filter_for_jpeg(root, files):
     files = [f for f in files if re.match(file_types, f)]
     
     return files
+
 
 def filter_for_annotations(root, files, image_filename):
     file_types = ['*.png']
@@ -67,8 +70,8 @@ def filter_for_annotations(root, files, image_filename):
 
     return files
 
-def main():
 
+def main():
     coco_output = {
         "info": INFO,
         "licenses": LICENSES,
@@ -81,8 +84,8 @@ def main():
     segmentation_id = 1
     
     # filter for jpeg images
-    for root, _, files in os.walk(IMAGE_DIR):
-        image_files = filter_for_jpeg(root, files)
+    for img_root, _, img_files in os.walk(IMAGE_DIR):
+        image_files = filter_for_jpeg(img_root, img_files)
 
         # go through each image
         for image_filename in image_files:
@@ -92,8 +95,8 @@ def main():
             coco_output["images"].append(image_info)
 
             # filter for associated png annotations
-            for root, _, files in os.walk(ANNOTATION_DIR):
-                annotation_files = filter_for_annotations(root, files, image_filename)
+            for annotation_root, _, annotation_filenames in os.walk(ANNOTATION_DIR):
+                annotation_files = filter_for_annotations(annotation_root, annotation_filenames, image_filename)
 
                 # go through each associated annotation
                 for annotation_filename in annotation_files:
@@ -102,8 +105,7 @@ def main():
                     class_id = [x['id'] for x in CATEGORIES if x['name'] in annotation_filename][0]
 
                     category_info = {'id': class_id, 'is_crowd': 'crowd' in image_filename}
-                    binary_mask = np.asarray(Image.open(annotation_filename)
-                        .convert('1')).astype(np.uint8)
+                    binary_mask = np.asarray(Image.open(annotation_filename).convert('1')).astype(np.uint8)
                     
                     annotation_info = pycococreatortools.create_annotation_info(
                         segmentation_id, image_id, category_info, binary_mask,
@@ -116,7 +118,7 @@ def main():
 
             image_id = image_id + 1
 
-    with open('{}/instances_shape_train2018.json'.format(ROOT_DIR), 'w') as output_json_file:
+    with open(os.path.join(ROOT_DIR, JSON_FILENAME), 'w') as output_json_file:
         json.dump(coco_output, output_json_file)
 
 
